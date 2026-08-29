@@ -1,0 +1,53 @@
+{
+"update_url": "https://clients2.google.com/service/update2/crx",
+
+  "manifest_version": 3,
+  "name": "Myntra Automation-RM",
+  "version": "1.2.0",
+  "description": "Automates the full Myntra Direct order processing flow: Picklist → QC Pass → Pack → Invoice & Label Print.",
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Myntra Automation-RM",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://mdirect.myntrainfo.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_start"
+    }
+  ],
+  "permissions": [
+    "activeTab",
+    "tabs",
+    "storage",
+    "scripting",
+    "alarms",
+    "downloads"
+  ],
+  "host_permissions": [
+    "https://mdirect.myntrainfo.com/*",
+    "https://partnersapi.myntrainfo.com/*",
+    "https://*.onrender.com/*"
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["qz-tray.js", "hook.js", "pdfjs/pdf.min.js", "pdfjs/pdf.worker.min.js"],
+      "matches": ["https://mdirect.myntrainfo.com/*"]
+    }
+  ]
+}

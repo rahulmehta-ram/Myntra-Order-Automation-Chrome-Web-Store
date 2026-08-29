@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Myntra Automation-RM – Settings</title>
+  <style>
+    :root {
+      --bg-primary:   #FFFDF6;
+      --bg-card:      #FFFFFF;
+      --bg-secondary: #F4F0EA;
+      --border-color: #000000;
+      --border-width: 2.5px;
+      --shadow-offset: 4px;
+      --shadow-color: #000000;
+
+      --accent-pink:   #FF3F6C;
+      --accent-yellow: #FFDE59;
+      --accent-green:  #00E676;
+      --accent-blue:   #00E5FF;
+      --text-dark:     #000000;
+      --text-muted:    #333333;
+      --text-light:    #FFFFFF;
+      --danger:        #FF3366;
+      --success-bg:    #D1FFD7;
+      --error-bg:      #FFD1D1;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      width: 380px;
+      font-family: system-ui, -apple-system, sans-serif;
+      background-color: var(--bg-primary);
+      color: var(--text-dark);
+      padding: 0;
+      user-select: none;
+    }
+
+    /* ── Neubrutalist Header ── */
+    .header {
+      background: var(--accent-yellow);
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-bottom: var(--border-width) solid var(--border-color);
+    }
+    .logo-wrap {
+      width: 38px; height: 38px;
+      background: var(--accent-pink);
+      border: var(--border-width) solid var(--border-color);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 3px 3px 0px var(--shadow-color);
+      flex-shrink: 0;
+      font-size: 22px;
+      font-weight: 900;
+      color: #ffffff;
+      font-family: system-ui, -apple-system, sans-serif;
+    }
+    .logo-wrap svg { width: 22px; height: 22px; fill: #ffffff; }
+    .header-text h1 { font-size: 15px; font-weight: 900; color: #000; text-transform: uppercase; letter-spacing: 0.5px; }
+    .header-text p  { font-size: 11px; font-weight: 700; color: #222; margin-top: 1px; }
+
+    /* ── Neubrutalist Status Bar ── */
+    .sub-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 16px;
+      background: var(--bg-card);
+      border-bottom: var(--border-width) solid var(--border-color);
+    }
+    .sub-bar.hidden { display: none; }
+    .sub-details {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .sub-plan {
+      background: var(--accent-green);
+      color: #000000;
+      border: 2px solid var(--border-color);
+      box-shadow: 2px 2px 0px var(--shadow-color);
+      padding: 3px 10px;
+      border-radius: 6px;
+      font-weight: 900;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .sub-expiry {
+      font-weight: 800;
+      font-size: 11px;
+      color: #000000;
+    }
+    .btn-logout {
+      background: var(--accent-pink);
+      border: 2px solid var(--border-color);
+      box-shadow: 2px 2px 0px var(--shadow-color);
+      border-radius: 6px;
+      color: #FFFFFF;
+      font-family: inherit;
+      font-size: 10px;
+      font-weight: 800;
+      padding: 4px 10px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn-logout:hover {
+      transform: translate(-1px, -1px);
+      box-shadow: 3px 3px 0px var(--shadow-color);
+    }
+    .btn-logout:active {
+      transform: translate(1px, 1px);
+      box-shadow: 1px 1px 0px var(--shadow-color);
+    }
+
+    /* ── Auth Screen ── */
+    #auth-screen { padding: 20px 20px; }
+    #auth-screen.hidden { display: none; }
+
+    .auth-tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 18px;
+    }
+    .auth-tab {
+      flex: 1;
+      padding: 10px;
+      background: var(--bg-card);
+      border: var(--border-width) solid var(--border-color);
+      box-shadow: 3px 3px 0px var(--shadow-color);
+      border-radius: 8px;
+      color: #000;
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: all 0.15s;
+      text-transform: uppercase;
+    }
+    .auth-tab.active {
+      background: var(--accent-yellow);
+      box-shadow: 4px 4px 0px var(--shadow-color);
+      transform: translate(-1px, -1px);
+    }
+    .auth-tab:hover:not(.active) {
+      background: #FAF8F0;
+    }
+
+    .auth-form { display: flex; flex-direction: column; gap: 14px; }
+    .auth-form.hidden { display: none; }
+
+    .form-group { position: relative; }
+    .form-input {
+      width: 100%;
+      background: var(--bg-card);
+      border: var(--border-width) solid var(--border-color);
+      box-shadow: 3px 3px 0px var(--shadow-color);
+      border-radius: 8px;
+      padding: 11px 14px 11px 38px;
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 700;
+      color: #000;
+      transition: all 0.15s;
+      outline: none;
+    }
+    .form-input:focus {
+      background: #FFFDF0;
+      box-shadow: 5px 5px 0px var(--shadow-color);
+      transform: translate(-1px, -1px);
+    }
+    .form-input::placeholder { color: #666; font-weight: 500; }
+    .form-icon {
+      position: absolute;
+      left: 12px; top: 50%; transform: translateY(-50%);
+      font-size: 14px;
+      pointer-events: none;
+    }
+
+    .btn-auth {
+      width: 100%;
+      padding: 12px;
+      background: var(--accent-pink);
+      border: var(--border-width) solid var(--border-color);
+      box-shadow: 4px 4px 0px var(--shadow-color);
+      border-radius: 8px;
+      color: #FFFFFF;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 900;
+      cursor: pointer;
+      transition: all 0.15s;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+    .btn-auth:hover {
+      transform: translate(-2px, -2px);
+      box-shadow: 6px 6px 0px var(--shadow-color);
+    }
+    .btn-auth:active {
+      transform: translate(2px, 2px);
+      box-shadow: 2px 2px 0px var(--shadow-color);
+    }
+    .btn-auth:disabled { opacity: 0.6; cursor: not-allowed; transform: none; box-shadow: 2px 2px 0px var(--shadow-color); }
+
+    .auth-error {
+      background: var(--error-bg);
+      border: 2px solid var(--border-color);
+      box-shadow: 3px 3px 0px var(--shadow-color);
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 11px;
+      font-weight: 800;
+      color: #D32F2F;
+      display: none;
+      text-align: center;
+    }
+    .auth-error.show { display: block; }
+
+    .auth-success {
+      background: var(--success-bg);
+      border: 2px solid var(--border-color);
+      box-shadow: 3px 3px 0px var(--shadow-color);
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 11px;
+      font-weight: 800;
+      color: #1B5E20;
+      display: none;
+      text-align: center;
+    }
+    .auth-success.show { display: block; }
+
+    /* ── Settings Screen ── */
+    #settings-screen { display: none; }
+    #settings-screen.visible { display: block; }
+
+    .config-section { padding: 18px 20px; }
+    .section-title {
+      font-size: 11px;
+      font-weight: 900;
+      color: #000;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      background: var(--accent-yellow);
+      border: 2px solid var(--border-color);
+      box-shadow: 2px 2px 0px var(--shadow-color);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 6px;
+      margin-bottom: 10px;
+    }
+    .config-group {
+      background: var(--bg-card);
+      border: var(--border-width) solid var(--border-color);
+      box-shadow: 4px 4px 0px var(--shadow-color);
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 16px;
+    }
+    .config-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      border-bottom: 2px solid #000;
+    }
+    .config-row:last-child { border-bottom: none; }
+    .config-label {
+      font-size: 12px;
+      color: #000;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+    .config-label .icon { font-size: 14px; }
+
+    .config-input, .config-select {
+      width: 160px;
+      background: var(--bg-secondary);
+      border: 2px solid var(--border-color);
+      box-shadow: 2px 2px 0px var(--shadow-color);
+      border-radius: 6px;
+      padding: 7px 10px;
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 800;
+      color: #000;
+      text-align: left;
+      transition: all 0.15s;
+    }
+    .config-select {
+      cursor: pointer;
+      appearance: none;
+      -webkit-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23000000'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+      padding-right: 26px;
+    }
+    .config-input:focus, .config-select:focus {
+      outline: none;
+      background: #FFFFFF;
+      box-shadow: 4px 4px 0px var(--shadow-color);
+      transform: translate(-1px, -1px);
+    }
+    .config-input::placeholder { color: #666; font-weight: 500; }
+    .config-input.narrow { width: 85px; text-align: right; }
+
+    .refresh-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .btn-refresh {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 12px;
+      background: var(--accent-blue);
+      border: 2px solid var(--border-color);
+      box-shadow: 3px 3px 0px var(--shadow-color);
+      border-radius: 6px;
+      color: #000;
+      font-family: inherit;
+      font-size: 11px;
+      font-weight: 900;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn-refresh:hover {
+      transform: translate(-1px, -1px);
+      box-shadow: 4px 4px 0px var(--shadow-color);
+    }
+    .btn-refresh:active {
+      transform: translate(1px, 1px);
+      box-shadow: 1px 1px 0px var(--shadow-color);
+    }
+    .btn-refresh:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    .btn-refresh .spin { display: inline-block; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .printer-status { font-size: 11px; font-weight: 800; color: #333; margin-bottom: 8px; }
+    .printer-status.ok { color: #1B5E20; }
+    .printer-status.err { color: #D32F2F; }
+
+    /* Neubrutalist Toggle Switch */
+    .toggle-switch { position: relative; width: 46px; height: 24px; flex-shrink: 0; }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider {
+      position: absolute; cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: #EAE5D9;
+      border-radius: 6px;
+      transition: 0.2s;
+      border: 2px solid var(--border-color);
+      box-shadow: 2px 2px 0px var(--shadow-color);
+    }
+    .toggle-slider::before {
+      content: ''; position: absolute;
+      height: 14px; width: 14px; left: 3px; bottom: 3px;
+      background: #000000; border-radius: 3px; transition: 0.2s;
+    }
+    .toggle-switch input:checked + .toggle-slider { background: var(--accent-green); }
+    .toggle-switch input:checked + .toggle-slider::before { transform: translateX(20px); }
+
+    .save-indicator {
+      padding: 10px 14px;
+      margin: 10px 20px 16px;
+      display: flex; align-items: center; justify-content: center;
+      gap: 6px; font-size: 11px; font-weight: 900;
+      background: var(--bg-card);
+      border: 2px solid var(--border-color);
+      box-shadow: 3px 3px 0px var(--shadow-color);
+      border-radius: 8px;
+      color: #333;
+      transition: all 0.2s;
+    }
+    .save-indicator.saved { background: var(--success-bg); color: #1B5E20; }
+
+    .config-hint { font-size: 10px; font-weight: 700; color: #444; padding: 4px 14px 10px; line-height: 1.4; background: #FAF8F0; border-top: 1.5px solid #000; }
+
+    .spinner {
+      display: inline-block; width: 14px; height: 14px;
+      border: 2.5px solid #000; border-top-color: transparent;
+      border-radius: 50%; animation: spin 0.6s linear infinite;
+      vertical-align: middle; margin-right: 6px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <div class="header">
+    <div class="logo-wrap">M</div>
+    <div class="header-text">
+      <h1>Myntra Automation-RM</h1>
+      <p>⚙ Extension Settings</p>
+    </div>
+  </div>
+
+  <!-- Subscription Status Bar (shown after login) -->
+  <div class="sub-bar" id="sub-bar">
+    <div class="sub-details">
+      <span class="sub-plan" id="sub-plan-badge">FREE</span>
+      <span class="sub-expiry" id="sub-expiry">Unlimited Access</span>
+    </div>
+    <div style="display: flex; gap: 8px;">
+      <button class="btn-logout" id="btn-logout">Logout</button>
+    </div>
+  </div>
+
+  <!-- AUTH SCREEN (Login / Register) -->
+  <div id="auth-screen">
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tab-login">Login</button>
+      <button class="auth-tab" id="tab-register">Create Account</button>
+    </div>
+
+    <!-- Login Form -->
+    <form class="auth-form" id="form-login" autocomplete="off">
+      <div class="form-group">
+        <span class="form-icon">📧</span>
+        <input type="email" class="form-input" id="login-email" placeholder="Email address" required />
+      </div>
+      <div class="form-group">
+        <span class="form-icon">🔒</span>
+        <input type="password" class="form-input" id="login-password" placeholder="Password" required />
+      </div>
+      <div class="auth-error" id="login-error"></div>
+      <button type="submit" class="btn-auth" id="btn-login">Login</button>
+    </form>
+
+    <!-- Register Form -->
+    <form class="auth-form hidden" id="form-register" autocomplete="off">
+      <div class="form-group">
+        <span class="form-icon">👤</span>
+        <input type="text" class="form-input" id="reg-name" placeholder="Your name" required />
+      </div>
+      <div class="form-group">
+        <span class="form-icon">📧</span>
+        <input type="email" class="form-input" id="reg-email" placeholder="Email address" required />
+      </div>
+      <div class="form-group">
+        <span class="form-icon">🔒</span>
+        <input type="password" class="form-input" id="reg-password" placeholder="Password (min 6 chars)" minlength="6" required />
+      </div>
+      <div class="auth-error" id="reg-error"></div>
+      <div class="auth-success" id="reg-success"></div>
+      <button type="submit" class="btn-auth" id="btn-register">Create Account & Start Free</button>
+    </form>
+  </div>
+
+  <!-- SETTINGS SCREEN (shown after login) -->
+  <div id="settings-screen">
+    <div class="config-section">
+      <div class="refresh-row">
+        <div class="section-title">🖨️ Printer Settings</div>
+        <button class="btn-refresh" id="btn-refresh-printers" title="Fetch printers from QZ Tray">
+          <span id="refresh-icon">🔄</span> Refresh
+        </button>
+      </div>
+      <div class="printer-status" id="printer-status"></div>
+      <div class="config-group">
+        <div class="config-row">
+          <span class="config-label"><span class="icon">📄</span> Invoice Printer</span>
+          <select class="config-select" id="cfg-invoice-printer">
+            <option value="Save as PDF">Save as PDF</option>
+            <option value="TSC DA310">TSC DA310</option>
+            <option value="Microsoft Print to PDF">Microsoft Print to PDF</option>
+          </select>
+        </div>
+        <div class="config-row">
+          <span class="config-label"><span class="icon">🏷️</span> Label Printer</span>
+          <select class="config-select" id="cfg-label-printer">
+            <option value="Save as PDF">Save as PDF</option>
+            <option value="TSC DA310">TSC DA310</option>
+            <option value="Microsoft Print to PDF">Microsoft Print to PDF</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="section-title">📦 Cover ID / Barcode</div>
+      <div class="config-group">
+        <div class="config-row">
+          <span class="config-label"><span class="icon">🔖</span> Default Cover ID</span>
+          <input class="config-input" type="text" id="cfg-cover-id" value="myntra123" placeholder="e.g. myntra123" />
+        </div>
+        <div class="config-row">
+          <span class="config-label"><span class="icon">📷</span> Scan per order</span>
+          <label class="toggle-switch">
+            <input type="checkbox" id="cfg-scan-per-order" />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <div class="config-hint">When enabled, you'll be prompted to scan/enter a Cover ID after each QC Pass.</div>
+      </div>
+
+      <div class="section-title">⚡ Advanced</div>
+      <div class="config-group">
+        <div class="config-row">
+          <span class="config-label"><span class="icon">⏱️</span> Step Delay (ms)</span>
+          <input class="config-input narrow" type="number" id="cfg-delay" value="1500" min="500" max="10000" step="100" />
+        </div>
+        <div class="config-row">
+          <span class="config-label"><span class="icon">⏸️</span> Pause on SKU Change</span>
+          <label class="toggle-switch">
+            <input type="checkbox" id="cfg-pause-sku" checked />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <div class="config-hint">When enabled, automation will pause and wait for your confirmation before processing the next SKU.</div>
+      </div>
+
+      <div class="section-title">📁 PDF Save Settings</div>
+      <div class="config-group">
+        <div class="config-row">
+          <span class="config-label"><span class="icon">💾</span> PDF Save Folder</span>
+          <input class="config-input" type="text" id="cfg-pdf-path" value="MyntraOrders" placeholder="MyntraOrders" />
+        </div>
+        <div class="config-row">
+          <span class="config-label"><span class="icon">📂</span> Group by SKU Folder</span>
+          <label class="toggle-switch">
+            <input type="checkbox" id="cfg-pdf-group-sku" checked />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <div class="config-hint">Select "Save as PDF" or any PDF option to auto-save invoices & labels to your macOS / Windows Downloads folder. Toggle ON = separate folder per Seller SKU. Toggle OFF = all PDFs in one folder.</div>
+      </div>
+    </div>
+
+    <div class="save-indicator" id="save-indicator">Settings auto-saved</div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
