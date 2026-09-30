@@ -257,6 +257,59 @@ async function runAutomation({ tabId, delay: stepDelay, quantity, orderType, exi
   automationState.running = true;
   automationState.tabId = tabId;
 
+  // ── Ask for Print Permission (Batch Level) ───────────────────
+  let batchPrintPermission = 'all';
+  try {
+    const permissionResult = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async () => {
+        return new Promise((resolve) => {
+          const overlay = document.createElement('div');
+          overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.6);z-index:999999;display:flex;align-items:center;justify-content:center;';
+          
+          const modal = document.createElement('div');
+          modal.style.cssText = 'background:#fff;border:3px solid #000;border-radius:12px;padding:30px;width:400px;max-width:90%;box-shadow:8px 8px 0 #000;font-family:system-ui,-apple-system,sans-serif;color:#000;text-align:center;';
+          
+          modal.innerHTML = `
+            <div style="font-size:40px;margin-bottom:15px">🖨️</div>
+            <h2 style="margin:0 0 15px 0;font-size:22px;font-weight:800;text-transform:uppercase;">Print Permission</h2>
+            <p style="margin-bottom:25px;font-size:15px;color:#444;font-weight:500;">How would you like to print?</p>
+            <div style="display:flex;gap:15px;justify-content:center;">
+              <button id="moa-print-single-btn" style="flex:1;background:#fff;color:#000;border:2px solid #000;padding:12px;font-weight:700;border-radius:6px;cursor:pointer;box-shadow:4px 4px 0 #000;transition:transform 0.1s;text-transform:uppercase;">Print Single</button>
+              <button id="moa-print-all-btn" style="flex:1;background:#4CAF50;color:#000;border:2px solid #000;padding:12px;font-weight:700;border-radius:6px;cursor:pointer;box-shadow:4px 4px 0 #000;transition:transform 0.1s;text-transform:uppercase;">Print All</button>
+            </div>
+            <div style="margin-top:20px;font-size:12px;color:#666;text-align:left;">
+              <b>Print Single:</b> Ask for confirmation before printing each order.<br><br>
+              <b>Print All:</b> Continuously print all orders automatically without asking again.
+            </div>
+          `;
+          
+          overlay.appendChild(modal);
+          document.body.appendChild(overlay);
+          
+          const singleBtn = document.getElementById('moa-print-single-btn');
+          const allBtn = document.getElementById('moa-print-all-btn');
+          
+          const addPressEffect = (btn) => {
+            btn.onmousedown = () => { btn.style.transform = 'translate(2px, 2px)'; btn.style.boxShadow = '2px 2px 0 #000'; };
+            btn.onmouseup = () => { btn.style.transform = ''; btn.style.boxShadow = '4px 4px 0 #000'; };
+            btn.onmouseleave = () => { btn.style.transform = ''; btn.style.boxShadow = '4px 4px 0 #000'; };
+          };
+          addPressEffect(singleBtn);
+          addPressEffect(allBtn);
+          
+          singleBtn.onclick = () => { document.body.removeChild(overlay); resolve('single'); };
+          allBtn.onclick = () => { document.body.removeChild(overlay); resolve('all'); };
+        });
+      }
+    });
+    batchPrintPermission = permissionResult?.[0]?.result || 'all';
+    log(`▶ Batch print permission: ${batchPrintPermission.toUpperCase()}`, 'info');
+  } catch (e) {
+    log(`⚠ Could not ask for print permission, defaulting to PRINT ALL: ${e.message}`, 'warning');
+    batchPrintPermission = 'all';
+  }
+
   // ── Summary tracking ────────────────────────────────────────
   const summaryData = {
     startTime: Date.now(),
@@ -1022,6 +1075,71 @@ async function runAutomation({ tabId, delay: stepDelay, quantity, orderType, exi
           : (orderLineId ? String(orderLineId) : refIds[0] || '');
         log(`  → Using sellerOrderId (portalOrderReleaseId): ${sellerOrderId}`, 'info');
 
+        // ── Check Print Single permission ────────────────────────
+        if (batchPrintPermission === 'single') {
+          log(`  🖨️  Waiting for print confirmation for Order ID: ${sellerOrderId}…`, 'step');
+          
+          const printConfirmArr = await chrome.scripting.executeScript({
+            target: { tabId },
+            func: async (orderId, sku) => {
+              return new Promise((resolve) => {
+                const overlay = document.createElement('div');
+                overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.6);z-index:999999;display:flex;align-items:center;justify-content:center;';
+                
+                const modal = document.createElement('div');
+                modal.style.cssText = 'background:#fff;border:3px solid #000;border-radius:12px;padding:30px;width:400px;max-width:90%;box-shadow:8px 8px 0 #000;font-family:system-ui,-apple-system,sans-serif;color:#000;text-align:center;';
+                
+                modal.innerHTML = `
+                  <div style="font-size:40px;margin-bottom:15px">🖨️</div>
+                  <h2 style="margin:0 0 15px 0;font-size:22px;font-weight:800;text-transform:uppercase;">Print Order?</h2>
+                  <div style="background:#e0f7fa;border:2px solid #000;padding:15px;border-radius:8px;margin-bottom:20px;text-align:left;">
+                    <p style="margin:0 0 8px 0;font-weight:600;">Order ID: <span style="font-weight:400;">${orderId}</span></p>
+                    <p style="margin:0;font-weight:600;">SKU: <span style="font-weight:400;">${sku}</span></p>
+                  </div>
+                  <div style="display:flex;gap:15px;justify-content:center;">
+                    <button id="moa-print-btn" style="flex:1;background:#4CAF50;color:#000;border:2px solid #000;padding:12px;font-weight:700;border-radius:6px;cursor:pointer;box-shadow:4px 4px 0 #000;transition:transform 0.1s;text-transform:uppercase;">Print</button>
+                    <button id="moa-skip-print-btn" style="flex:1;background:#f44336;color:#fff;border:2px solid #000;padding:12px;font-weight:700;border-radius:6px;cursor:pointer;box-shadow:4px 4px 0 #000;transition:transform 0.1s;text-transform:uppercase;">Skip</button>
+                  </div>
+                `;
+                
+                overlay.appendChild(modal);
+                document.body.appendChild(overlay);
+                
+                const printBtn = document.getElementById('moa-print-btn');
+                const skipBtn = document.getElementById('moa-skip-print-btn');
+                
+                const addPressEffect = (btn) => {
+                  btn.onmousedown = () => { btn.style.transform = 'translate(2px, 2px)'; btn.style.boxShadow = '2px 2px 0 #000'; };
+                  btn.onmouseup = () => { btn.style.transform = ''; btn.style.boxShadow = '4px 4px 0 #000'; };
+                  btn.onmouseleave = () => { btn.style.transform = ''; btn.style.boxShadow = '4px 4px 0 #000'; };
+                };
+                addPressEffect(printBtn);
+                addPressEffect(skipBtn);
+                
+                printBtn.onclick = () => { document.body.removeChild(overlay); resolve('PRINT'); };
+                skipBtn.onclick = () => { document.body.removeChild(overlay); resolve('SKIP'); };
+              });
+            },
+            args: [sellerOrderId, displaySellerSkuCode],
+          });
+          
+          if (printConfirmArr?.[0]?.result === 'SKIP') {
+            log(`⏭ Order ${sellerOrderId} print skipped by user. Continuing...`, 'warning');
+            
+            // Mark skipped and advance queue
+            processedPacketIds.add(sellerPacketId);
+            ordersProcessedForThisSku++;
+            globalOrderCounter++;
+            summaryData.totalOrders++;
+            if (packetItemsArr.length > 1) { summaryData.multiItemOrders++; }
+            else { summaryData.singleItemOrders++; }
+            await incrementOrderCount();
+            if (!isResumeMode && globalOrderCounter >= targetQuantity) { break; }
+            await delay(Math.floor(stepDelay / 2));
+            continue;
+          }
+        }
+
         const qp = new URLSearchParams({
           sellerId: effectiveConfig.sellerId,
           campaignEnriched: 'false',
@@ -1037,148 +1155,223 @@ async function runAutomation({ tabId, delay: stepDelay, quantity, orderType, exi
         const needQzPrint = !invoiceIsPdf || !labelIsPdf;
         const needPdfSave = invoiceIsPdf || labelIsPdf;
 
-        let printResults;
-        try {
-          const qzUrl = chrome.runtime.getURL('qz-tray.js');
-          // We always fetch both PDFs as base64 from the page context
-          // (need page cookies/session). Then handle printing/saving in background.
-          printResults = await chrome.scripting.executeScript({
-            target: { tabId },
-            world: 'MAIN',
-            func: async (invoiceUrl, labelUrl, invoicePrinterArg, labelPrinterArg, xsrfToken, qzCert, qzKey, qzUrl, invoiceIsPdfArg, labelIsPdfArg) => {
+        let printResult = null;
+        let retryPrint = true;
+        let userSkipped = false;
+        const qzUrl = chrome.runtime.getURL('qz-tray.js');
 
-              // Fetch a URL and return its content as a base64 string (with retry on 500/504)
-              async function fetchBase64(url) {
-                const maxRetries = 5;
-                for (let attempt = 1; attempt <= maxRetries; attempt++) {
-                  const resp = await fetch(url, {
-                    credentials: 'include',
-                    headers: {
-                      'accept': '*/*',
-                      'x-myntra-xsrf-token': xsrfToken,
-                      'x-myntra-app-name': 'mdirect',
-                      'x-myntra-client-id': 'mdirect',
-                      'x-requested-with': 'XMLHttpRequest',
-                      'origin': 'https://mdirect.myntrainfo.com',
-                      'referer': 'https://mdirect.myntrainfo.com/',
-                    },
+        while (retryPrint) {
+          retryPrint = false;
+          let printResults;
+          let executeError = null;
+
+          try {
+            // We always fetch both PDFs as base64 from the page context
+            // (need page cookies/session). Then handle printing/saving in background.
+            printResults = await chrome.scripting.executeScript({
+              target: { tabId },
+              world: 'MAIN',
+              func: async (invoiceUrl, labelUrl, invoicePrinterArg, labelPrinterArg, xsrfToken, qzCert, qzKey, qzUrl, invoiceIsPdfArg, labelIsPdfArg) => {
+
+                // Fetch a URL and return its content as a base64 string (with retry on 500/504)
+                async function fetchBase64(url) {
+                  const maxRetries = 5;
+                  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+                    const resp = await fetch(url, {
+                      credentials: 'include',
+                      headers: {
+                        'accept': '*/*',
+                        'x-myntra-xsrf-token': xsrfToken,
+                        'x-myntra-app-name': 'mdirect',
+                        'x-myntra-client-id': 'mdirect',
+                        'x-requested-with': 'XMLHttpRequest',
+                        'origin': 'https://mdirect.myntrainfo.com',
+                        'referer': 'https://mdirect.myntrainfo.com/',
+                      },
+                    });
+                    if (resp.ok) {
+                      const blob = await resp.blob();
+                      return new Promise((res, rej) => {
+                        const reader = new FileReader();
+                        reader.onloadend = () => res(reader.result.split(',')[1]);
+                        reader.onerror = rej;
+                        reader.readAsDataURL(blob);
+                      });
+                    }
+                    if ([500, 502, 503, 504].includes(resp.status) && attempt < maxRetries) {
+                      const retryDelay = Math.min(3000 * attempt, 12000);
+                      await new Promise(r => setTimeout(r, retryDelay));
+                      continue;
+                    }
+                    throw new Error(`HTTP ${resp.status} from ${url}`);
+                  }
+                }
+
+                // Wait for window.qz or auto-load qz-tray.js
+                async function ensureQZ() {
+                  if (typeof qz !== 'undefined') return;
+                  for (let i = 0; i < 5; i++) {
+                    await new Promise(r => setTimeout(r, 1000));
+                    if (typeof qz !== 'undefined') return;
+                  }
+                  
+                  await new Promise((resolve, reject) => {
+                    const script = document.createElement('script');
+                    script.src = qzUrl;
+                    script.onload = resolve;
+                    script.onerror = () => reject(new Error('Failed to load qz-tray.js from extension bundle'));
+                    document.head.appendChild(script);
                   });
-                  if (resp.ok) {
-                    const blob = await resp.blob();
-                    return new Promise((res, rej) => {
-                      const reader = new FileReader();
-                      reader.onloadend = () => res(reader.result.split(',')[1]);
-                      reader.onerror = rej;
-                      reader.readAsDataURL(blob);
+
+                  for (let i = 0; i < 10; i++) {
+                    await new Promise(r => setTimeout(r, 500));
+                    if (typeof qz !== 'undefined') return;
+                  }
+                  
+                  throw new Error('QZ Tray library not available. Make sure QZ Tray is installed and running.');
+                }
+
+                // Setup QZ security using passed cert/key
+                function setupQzSecurity() {
+                  if (qz.security && qz.security.setCertificatePromise) {
+                    qz.security.setCertificatePromise(function (resolve) { resolve(qzCert); });
+                  }
+                  if (qz.security && qz.security.setSignatureAlgorithm) {
+                    qz.security.setSignatureAlgorithm('SHA512');
+                  }
+                  if (qz.security && qz.security.setSignaturePromise) {
+                    qz.security.setSignaturePromise(function (toSign) {
+                      return function (resolve, reject) {
+                        try {
+                          const bin = window.atob(qzKey);
+                          const bytes = new Uint8Array(bin.length);
+                          for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+                          window.crypto.subtle.importKey('pkcs8', bytes.buffer, { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-512' }, false, ['sign'])
+                            .then(pk => window.crypto.subtle.sign('RSASSA-PKCS1-v1_5', pk, new TextEncoder().encode(toSign)))
+                            .then(sig => { let b = ''; new Uint8Array(sig).forEach(c => b += String.fromCharCode(c)); resolve(window.btoa(b)); })
+                            .catch(reject);
+                        } catch (e) { reject(e); }
+                      };
                     });
                   }
-                  if ([500, 502, 503, 504].includes(resp.status) && attempt < maxRetries) {
-                    const retryDelay = Math.min(3000 * attempt, 12000);
-                    await new Promise(r => setTimeout(r, retryDelay));
-                    continue;
-                  }
-                  throw new Error(`HTTP ${resp.status} from ${url}`);
                 }
-              }
 
-              // Wait for window.qz or auto-load qz-tray.js
-              async function ensureQZ() {
-                if (typeof qz !== 'undefined') return;
-                for (let i = 0; i < 5; i++) {
-                  await new Promise(r => setTimeout(r, 1000));
-                  if (typeof qz !== 'undefined') return;
+                try {
+                  // Always fetch both PDFs as base64
+                  const [invoiceB64, labelB64] = await Promise.all([
+                    fetchBase64(invoiceUrl),
+                    fetchBase64(labelUrl),
+                  ]);
+
+                  // Only use QZ Tray if at least one printer is NOT PDF
+                  const needQz = !invoiceIsPdfArg || !labelIsPdfArg;
+                  if (needQz) {
+                    await ensureQZ();
+                    setupQzSecurity();
+
+                    if (!qz.websocket.isActive()) {
+                      await qz.websocket.connect();
+                    }
+
+                    // Print only the non-PDF ones via QZ
+                    if (!invoiceIsPdfArg) {
+                      const invoiceConfig = qz.configs.create(invoicePrinterArg);
+                      await qz.print(invoiceConfig, [{ type: 'pixel', format: 'pdf', flavor: 'base64', data: invoiceB64 }]);
+                    }
+                    if (!labelIsPdfArg) {
+                      const labelConfig = qz.configs.create(labelPrinterArg);
+                      await qz.print(labelConfig, [{ type: 'pixel', format: 'pdf', flavor: 'base64', data: labelB64 }]);
+                    }
+                  }
+
+                  // Return base64 data for PDFs that need saving
+                  return {
+                    ok: true,
+                    invoiceB64: invoiceIsPdfArg ? invoiceB64 : null,
+                    labelB64: labelIsPdfArg ? labelB64 : null,
+                  };
+                } catch (err) {
+                  return { ok: false, error: err.message };
                 }
-                
-                await new Promise((resolve, reject) => {
-                  const script = document.createElement('script');
-                  script.src = qzUrl;
-                  script.onload = resolve;
-                  script.onerror = () => reject(new Error('Failed to load qz-tray.js from extension bundle'));
-                  document.head.appendChild(script);
+              },
+              args: [invoiceUrl, labelUrl, invoicePrinter, labelPrinter, xsrfToken, QZ_CERTIFICATE, QZ_PRIVATE_KEY_B64, qzUrl, invoiceIsPdf, labelIsPdf],
+            });
+          } catch (e) {
+            executeError = e;
+          }
+
+          printResult = printResults?.[0]?.result;
+
+          if (executeError || !printResult?.ok) {
+            stepFailed(5);
+            const errorMsg = executeError ? executeError.message : (printResult?.error || 'No result from page');
+            log(`⚠ Label download failed for Order ID: ${sellerOrderId} - ${errorMsg}`, 'warning');
+
+            // Show UI Modal for retry/skip
+            const userChoiceArr = await chrome.scripting.executeScript({
+              target: { tabId },
+              func: async (orderId, sku) => {
+                return new Promise((resolve) => {
+                  const overlay = document.createElement('div');
+                  overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.6);z-index:999999;display:flex;align-items:center;justify-content:center;';
+                  
+                  const modal = document.createElement('div');
+                  modal.style.cssText = 'background:#fff;border:3px solid #000;border-radius:12px;padding:30px;width:400px;max-width:90%;box-shadow:8px 8px 0 #000;font-family:system-ui,-apple-system,sans-serif;color:#000;text-align:center;';
+                  
+                  modal.innerHTML = `
+                    <div style="font-size:40px;margin-bottom:15px">⚠️</div>
+                    <h2 style="margin:0 0 15px 0;font-size:22px;font-weight:800;text-transform:uppercase;">Label Download Failed</h2>
+                    <div style="background:#f8d7da;border:2px solid #000;padding:15px;border-radius:8px;margin-bottom:20px;text-align:left;">
+                      <p style="margin:0 0 8px 0;font-weight:600;">Order ID: <span style="font-weight:400;">${orderId}</span></p>
+                      <p style="margin:0;font-weight:600;">SKU: <span style="font-weight:400;">${sku}</span></p>
+                    </div>
+                    <p style="margin-bottom:25px;font-size:15px;color:#444;font-weight:500;">The invoice or shipping label could not be downloaded.</p>
+                    <div style="display:flex;gap:15px;justify-content:center;">
+                      <button id="moa-retry-btn" style="flex:1;background:#fff;color:#000;border:2px solid #000;padding:12px;font-weight:700;border-radius:6px;cursor:pointer;box-shadow:4px 4px 0 #000;transition:transform 0.1s;text-transform:uppercase;">Retry</button>
+                      <button id="moa-skip-btn" style="flex:1;background:#ff4757;color:#fff;border:2px solid #000;padding:12px;font-weight:700;border-radius:6px;cursor:pointer;box-shadow:4px 4px 0 #000;transition:transform 0.1s;text-transform:uppercase;">Continue</button>
+                    </div>
+                  `;
+                  
+                  overlay.appendChild(modal);
+                  document.body.appendChild(overlay);
+                  
+                  const retryBtn = document.getElementById('moa-retry-btn');
+                  const skipBtn = document.getElementById('moa-skip-btn');
+                  
+                  const addPressEffect = (btn) => {
+                    btn.onmousedown = () => { btn.style.transform = 'translate(2px, 2px)'; btn.style.boxShadow = '2px 2px 0 #000'; };
+                    btn.onmouseup = () => { btn.style.transform = ''; btn.style.boxShadow = '4px 4px 0 #000'; };
+                    btn.onmouseleave = () => { btn.style.transform = ''; btn.style.boxShadow = '4px 4px 0 #000'; };
+                  };
+                  addPressEffect(retryBtn);
+                  addPressEffect(skipBtn);
+                  
+                  retryBtn.onclick = () => { document.body.removeChild(overlay); resolve('RETRY'); };
+                  skipBtn.onclick = () => { document.body.removeChild(overlay); resolve('CONTINUE'); };
                 });
+              },
+              args: [sellerOrderId, displaySellerSkuCode],
+            });
 
-                for (let i = 0; i < 10; i++) {
-                  await new Promise(r => setTimeout(r, 500));
-                  if (typeof qz !== 'undefined') return;
-                }
-                
-                throw new Error('QZ Tray library not available. Make sure QZ Tray is installed and running.');
-              }
-
-              // Setup QZ security using passed cert/key
-              function setupQzSecurity() {
-                if (qz.security && qz.security.setCertificatePromise) {
-                  qz.security.setCertificatePromise(function (resolve) { resolve(qzCert); });
-                }
-                if (qz.security && qz.security.setSignatureAlgorithm) {
-                  qz.security.setSignatureAlgorithm('SHA512');
-                }
-                if (qz.security && qz.security.setSignaturePromise) {
-                  qz.security.setSignaturePromise(function (toSign) {
-                    return function (resolve, reject) {
-                      try {
-                        const bin = window.atob(qzKey);
-                        const bytes = new Uint8Array(bin.length);
-                        for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-                        window.crypto.subtle.importKey('pkcs8', bytes.buffer, { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-512' }, false, ['sign'])
-                          .then(pk => window.crypto.subtle.sign('RSASSA-PKCS1-v1_5', pk, new TextEncoder().encode(toSign)))
-                          .then(sig => { let b = ''; new Uint8Array(sig).forEach(c => b += String.fromCharCode(c)); resolve(window.btoa(b)); })
-                          .catch(reject);
-                      } catch (e) { reject(e); }
-                    };
-                  });
-                }
-              }
-
-              try {
-                // Always fetch both PDFs as base64
-                const [invoiceB64, labelB64] = await Promise.all([
-                  fetchBase64(invoiceUrl),
-                  fetchBase64(labelUrl),
-                ]);
-
-                // Only use QZ Tray if at least one printer is NOT PDF
-                const needQz = !invoiceIsPdfArg || !labelIsPdfArg;
-                if (needQz) {
-                  await ensureQZ();
-                  setupQzSecurity();
-
-                  if (!qz.websocket.isActive()) {
-                    await qz.websocket.connect();
-                  }
-
-                  // Print only the non-PDF ones via QZ
-                  if (!invoiceIsPdfArg) {
-                    const invoiceConfig = qz.configs.create(invoicePrinterArg);
-                    await qz.print(invoiceConfig, [{ type: 'pixel', format: 'pdf', flavor: 'base64', data: invoiceB64 }]);
-                  }
-                  if (!labelIsPdfArg) {
-                    const labelConfig = qz.configs.create(labelPrinterArg);
-                    await qz.print(labelConfig, [{ type: 'pixel', format: 'pdf', flavor: 'base64', data: labelB64 }]);
-                  }
-                }
-
-                // Return base64 data for PDFs that need saving
-                return {
-                  ok: true,
-                  invoiceB64: invoiceIsPdfArg ? invoiceB64 : null,
-                  labelB64: labelIsPdfArg ? labelB64 : null,
-                };
-              } catch (err) {
-                return { ok: false, error: err.message };
-              }
-            },
-            args: [invoiceUrl, labelUrl, invoicePrinter, labelPrinter, xsrfToken, QZ_CERTIFICATE, QZ_PRIVATE_KEY_B64, qzUrl, invoiceIsPdf, labelIsPdf],
-          });
-        } catch (e) {
-          stepFailed(5);
-          throw new Error(`Step 5 (executeScript) error: ${e.message}`);
+            const userChoice = userChoiceArr?.[0]?.result;
+            if (userChoice === 'RETRY') {
+              retryPrint = true;
+              stepActive(5); // Reset UI to active for this step
+              continue; // Loop again
+            } else {
+              log(`⏭ Order ${sellerOrderId} failed. Continuing to next order in batch...`, 'warning');
+              userSkipped = true;
+              break; // Break the retry loop
+            }
+          } else {
+            log(`✓ Label downloaded successfully for Order ID: ${sellerOrderId}`, 'success');
+          }
         }
 
-        const printResult = printResults?.[0]?.result;
-        if (!printResult?.ok) {
-          stepFailed(5);
-          throw new Error(`Step 5 (QZ Print) failed: ${printResult?.error || 'No result from page'}`);
+        if (userSkipped) {
+          processedPacketIds.add(sellerPacketId);
+          log(`▶ Continuing with next order...`, 'info');
+          continue; 
         }
 
         // ── PDF Auto-Save via chrome.downloads ───────────────────

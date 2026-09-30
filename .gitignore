@@ -36,3 +36,6 @@ yarn-error.log*
 *.zip
 dist/
 build/
+
+# Test / Dev files
+test-harness.js

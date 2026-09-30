@@ -1,7 +1,7 @@
 # Myntra Order Automation (Chrome Web Store Extension)
 
 ![Manifest V3](https://img.shields.io/badge/Manifest-V3-blue.svg)
-![Version](https://img.shields.io/badge/version-1.2.0-green.svg)
+![Version](https://img.shields.io/badge/version-1.3.0-green.svg)
 ![Platform](https://img.shields.io/badge/platform-Chrome-orange.svg)
 
 > **Automates the complete Myntra Direct seller order fulfillment pipeline:**  
@@ -27,6 +27,19 @@ It eliminates manual, repetitive multi-step clicks by executing an end-to-end au
   5. **Step 4: Ready-to-Ship (RTS)** — Marks packets as Ready-To-Ship with optional Cover ID / Barcode scanning.
   6. **Step 5: Thermal Print / PDF Save** — Direct printing of Invoices & Shipping Labels to thermal printers (e.g. TSC DA310) via QZ Tray or auto-saving PDFs into organized folders by SKU.
 
+- **🖨️ Batch Print Permission System:**
+  - One-time print authorization at the start of each automation batch.
+  - **Print All:** Continuously process and print all orders automatically without per-order confirmation.
+  - **Print Single:** Ask for print confirmation before each individual order. User can Print or Skip each order.
+  - Authorization is session-scoped — automatically cleared when the batch finishes, is stopped, or the automation is reset. Never persisted to storage.
+
+- **🛡️ Per-Order Error Recovery:**
+  - If an invoice or shipping label download fails for an individual order, the batch does **not** stop.
+  - A blocking modal shows the failed Order ID/SKU with **Retry** and **Continue** options.
+  - **Retry:** Re-attempts the label download for only the failed order. Can be retried indefinitely.
+  - **Continue:** Skips the failed order, logs the failure, and automatically proceeds to the next order.
+  - Previously successful orders are never reprocessed. Duplicate processing is prevented by `processedPacketIds` tracking.
+
 - **🎨 Neubrutalist Injected Control Panel:**
   - Floating Action Button (FAB) draggable to any position on `mdirect.myntrainfo.com`.
   - Real-time step progress indicators, activity logs, product card previews with images/sizes, and per-SKU pause/resume controls.
@@ -43,6 +56,9 @@ It eliminates manual, repetitive multi-step clicks by executing an end-to-end au
 - **⚙️ Configurable Popup Settings:**
   - Set default Invoice & Label printers, Cover ID values, step delays (ms), SKU pause toggles, and PDF destination folders.
 
+- **📊 Batch Completion Summary:**
+  - Displays total orders processed, SKU breakdown, single/multi-item counts, and elapsed time at batch completion.
+
 ---
 
 ## 📂 Project Architecture
@@ -50,19 +66,19 @@ It eliminates manual, repetitive multi-step clicks by executing an end-to-end au
 ```
 Myntra-Order-Automation-Chrome-Web-Store/
 ├── manifest.json         # Extension Manifest V3 declaration & permissions
-├── background.js       # Service worker orchestrating the fulfillment pipeline
-├── content.js          # Injected UI panel, FAB, and page-level API proxy
-├── hook.js             # Network hook intercepting Myntra boot APIs
-├── popup.html          # Extension toolbar popup interface
-├── popup.js            # Settings manager & printer discovery logic
-├── qz-tray.js          # Bundled QZ Tray web client library
-├── pdfjs/              # Bundled PDF.js library for client-side PDF parsing
+├── background.js         # Service worker orchestrating the fulfillment pipeline
+├── content.js            # Injected UI panel, FAB, and page-level API proxy
+├── hook.js               # Network hook intercepting Myntra boot APIs
+├── popup.html            # Extension toolbar popup interface
+├── popup.js              # Settings manager & printer discovery logic
+├── qz-tray.js            # Bundled QZ Tray web client library
+├── pdfjs/                # Bundled PDF.js library for client-side PDF parsing
 │   ├── pdf.min.js
 │   └── pdf.worker.min.js
-├── icons/              # Extension icons (16px, 32px, 48px, 128px)
-├── .gitignore          # Excluded OS and environment files
-├── CHROMEWEBSTORE.md   # Chrome Web Store submission metadata & justifications
-└── README.md           # Project documentation
+├── icons/                # Extension icons (16px, 32px, 48px, 128px)
+├── .gitignore            # Excluded OS, environment, and dev files
+├── CHROMEWEBSTORE.md     # Chrome Web Store submission metadata & justifications
+└── README.md             # Project documentation
 ```
 
 ---
@@ -93,8 +109,12 @@ Myntra-Order-Automation-Chrome-Web-Store/
 3. Choose your workflow:
    - **Generate New:** Set desired order quantity (e.g., `100`) and order type (`BOTH`, `SINGLE`, `MULTI`), then click **Start Automation**.
    - **Resume Picklist:** Enter your existing picklist barcode and click **Resume ▶**.
-4. Monitor live progress, product card previews, and activity logs inside the injected control panel.
-5. Invoices and shipping labels will automatically print to your selected printer or save to your `Downloads/MyntraOrders/<SKU>/` directory.
+4. When prompted, choose your print mode:
+   - **Print All** — Automatically print every order without asking again.
+   - **Print Single** — Confirm each order individually before printing.
+5. Monitor live progress, product card previews, and activity logs inside the injected control panel.
+6. If a label download fails, use the **Retry** or **Continue** modal to handle the error without stopping the batch.
+7. Invoices and shipping labels will automatically print to your selected printer or save to your `Downloads/MyntraOrders/<SKU>/` directory.
 
 ---
 
